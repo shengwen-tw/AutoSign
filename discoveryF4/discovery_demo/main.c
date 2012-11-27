@@ -72,18 +72,36 @@ static void Demo_Exec(void);
 int main(void)
 {
   RCC_ClocksTypeDef RCC_Clocks;
+  uint8_t HID_Buffer[4] = {0};
+  uint8_t way[4][2] = {{7,0},{0,7},{-7,0},{0,-7}}, i, j;
   
   /* Initialize LEDs and User_Button on STM32F4-Discovery --------------------*/
-  STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI); 
-  
-  STM_EVAL_LEDInit(LED4);
-  STM_EVAL_LEDInit(LED3);
-  STM_EVAL_LEDInit(LED5);
-  STM_EVAL_LEDInit(LED6);
+  //STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI); 
+  //
+  //STM_EVAL_LEDInit(LED4);
+  //STM_EVAL_LEDInit(LED3);
+  //STM_EVAL_LEDInit(LED5);
+  //STM_EVAL_LEDInit(LED6);
   
   /* SysTick end of count event each 10ms */
   RCC_GetClocksFreq(&RCC_Clocks);
   SysTick_Config(RCC_Clocks.HCLK_Frequency / 100);
+
+  Demo_USBConfig();
+  while(1)
+  {
+	  for(i=0; i<4; i++)
+	  {
+		  HID_Buffer[1] = way[i][0];
+		  HID_Buffer[2] = way[i][1];
+		  for(j=0; j<20; j++)
+		  {
+			  Delay(1);
+			  USBD_HID_SendReport(&USB_OTG_dev, HID_Buffer, 4);
+		  }
+	  }
+  }
+
   
   if (STM_EVAL_PBGetState(BUTTON_USER) == Bit_SET)
   {
