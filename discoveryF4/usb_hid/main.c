@@ -73,7 +73,17 @@ int main(void)
 {
   RCC_ClocksTypeDef RCC_Clocks;
   uint8_t HID_Buffer[4] = {0};
-  uint8_t way[4][2] = {{7,0},{0,7},{-7,0},{0,-7}}, i, j;
+  uint8_t way[4][2], i, j;
+
+  way[ 0 ][ 0 ] = 7;
+  way[ 0 ][ 1 ] = 0;
+  way[ 1 ][ 0 ] = 0;
+  way[ 1 ][ 1 ] = 7;
+  way[ 2 ][ 0 ] = -7;
+  way[ 2 ][ 1 ] = 0;
+  way[ 3 ][ 0 ] = 0;
+  way[ 3 ][ 1 ] = -7;
+
   
   /* Initialize LEDs and User_Button on STM32F4-Discovery --------------------*/
   //STM_EVAL_PBInit(BUTTON_USER, BUTTON_MODE_EXTI); 
@@ -97,6 +107,7 @@ int main(void)
 		  for(j=0; j<20; j++)
 		  {
 			  Delay(1);
+			  HID_Buffer[0] = !HID_Buffer[0];
 			  USBD_HID_SendReport(&USB_OTG_dev, HID_Buffer, 4);
 		  }
 	  }
