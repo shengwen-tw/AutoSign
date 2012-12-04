@@ -83,6 +83,9 @@ int main(void)
 
   Demo_USBConfig();
 
+  UserButtonPressed = 0x00;
+  DemoEnterCondition = 0x00;
+
   while(1) {
   }
 

@@ -53,8 +53,6 @@ uint8_t StepCnt = 0, CurDir = 0;
 /* Private function prototypes -----------------------------------------------*/
 extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
 static uint8_t *USBD_HID_GetPos (void);
-static uint8_t *Move_Right_Down (void);
-static uint8_t *HID_Release (void);
 extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
 
 
@@ -158,6 +156,9 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   uint8_t *buf;
+
+  if ( !DemoEnterCondition )
+	  return;
   
   buf = USBD_HID_GetPos();
   USBD_HID_SendReport (&USB_OTG_dev, buf, 4);
@@ -188,6 +189,7 @@ void SysTick_Handler(void)
 void EXTI0_IRQHandler(void)
 {
   UserButtonPressed = 0x01;
+  DemoEnterCondition = 0x01;
   
   /* Clear the EXTI line pending bit */
   EXTI_ClearITPendingBit(USER_BUTTON_EXTI_LINE);
@@ -254,22 +256,4 @@ static uint8_t *USBD_HID_GetPos (void)
 }
 
 
-static uint8_t *HID_Release (void)
-{
-  static uint8_t HID_Buffer[4] = {0};
-
-  return HID_Buffer;
-}
-
-
-static uint8_t *Move_Right_Down (void)
-{
-  static uint8_t HID_Buffer[4] = {0};
-
-  HID_Buffer[ 0 ] = 0;
-  HID_Buffer[ 1 ] = CURSOR_STEP;
-  HID_Buffer[ 2 ] = CURSOR_STEP;
-
-  return HID_Buffer;
-}
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
