@@ -36,6 +36,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #define CURSOR_STEP     7
+#define WIDTH	20
 
 extern uint8_t Buffer[6];
 /* Private macro -------------------------------------------------------------*/
@@ -46,10 +47,16 @@ extern int8_t X_Offset;
 extern int8_t Y_Offset;
 extern __IO uint8_t UserButtonPressed;
 __IO uint8_t TempAcceleration = 0;
+uint8_t step[ 4 ][ 2 ] = { { 7, 0 }, { 0, 7 }, { -7, 0 }, { 0, -7 } };
+uint8_t StepCnt = 0, CurDir = 0;
+
 /* Private function prototypes -----------------------------------------------*/
 extern USB_OTG_CORE_HANDLE           USB_OTG_dev;
 static uint8_t *USBD_HID_GetPos (void);
+static uint8_t *Move_Right_Down (void);
+static uint8_t *HID_Release (void);
 extern uint32_t USBD_OTG_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
+
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
@@ -151,77 +158,9 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   uint8_t *buf;
-  uint8_t temp1, temp2 = 0x00;
   
-  if (DemoEnterCondition == 0x00)
-  {
-    TimingDelay_Decrement();
-  }
-  else
-  {
-    buf = USBD_HID_GetPos();
-    if((buf[1] != 0) ||(buf[2] != 0))
-    {
-      USBD_HID_SendReport (&USB_OTG_dev, 
-                           buf,
-                           4);
-    } 
-    Counter ++;
-    if (Counter == 10)
-    {
-      Buffer[0] = 0;
-      Buffer[2] = 0;
-      /* Disable All TIM4 Capture Compare Channels */
-      TIM_CCxCmd(TIM4, TIM_Channel_1, DISABLE);
-      TIM_CCxCmd(TIM4, TIM_Channel_2, DISABLE);
-      TIM_CCxCmd(TIM4, TIM_Channel_3, DISABLE);
-      TIM_CCxCmd(TIM4, TIM_Channel_4, DISABLE);
-      
-      LIS302DL_Read(Buffer, LIS302DL_OUT_X_ADDR, 6);
-      /* Remove the offsets values from data */
-      Buffer[0] -= X_Offset;
-      Buffer[2] -= Y_Offset;
-      /* Update autoreload and capture compare registers value*/
-      temp1 = ABS((int8_t)(Buffer[0]));
-      temp2 = ABS((int8_t)(Buffer[2]));       
-      TempAcceleration = MAX(temp1, temp2);
-
-      if(TempAcceleration != 0)
-      { 
-        if ((int8_t)Buffer[0] < -2)
-        {
-          /* Enable TIM4 Capture Compare Channel 4 */
-          TIM_CCxCmd(TIM4, TIM_Channel_4, ENABLE);
-          /* Sets the TIM4 Capture Compare4 Register value */
-          TIM_SetCompare4(TIM4, TIM_CCR/TempAcceleration);
-        }
-        if ((int8_t)Buffer[0] > 2)
-        {
-          /* Enable TIM4 Capture Compare Channel 2 */
-          TIM_CCxCmd(TIM4, TIM_Channel_2, ENABLE);
-          /* Sets the TIM4 Capture Compare2 Register value */
-          TIM_SetCompare2(TIM4, TIM_CCR/TempAcceleration);
-        }
-        if ((int8_t)Buffer[2] > 2)
-        { 
-          /* Enable TIM4 Capture Compare Channel 1 */
-          TIM_CCxCmd(TIM4, TIM_Channel_1, ENABLE);
-          /* Sets the TIM4 Capture Compare1 Register value */
-          TIM_SetCompare1(TIM4, TIM_CCR/TempAcceleration);
-        }      
-        if ((int8_t)Buffer[2] < -2)
-        { 
-          /* Enable TIM4 Capture Compare Channel 3 */
-          TIM_CCxCmd(TIM4, TIM_Channel_3, ENABLE);
-          /* Sets the TIM4 Capture Compare3 Register value */
-          TIM_SetCompare3(TIM4, TIM_CCR/TempAcceleration);
-        }
-        /* Time base configuration */
-        TIM_SetAutoreload(TIM4,  TIM_ARR/TempAcceleration);
-      }
-      Counter = 0x00;
-    }  
-  }
+  buf = USBD_HID_GetPos();
+  USBD_HID_SendReport (&USB_OTG_dev, buf, 4);
   
 }
 
@@ -291,30 +230,46 @@ void OTG_FS_IRQHandler(void)
 static uint8_t *USBD_HID_GetPos (void)
 {
   static uint8_t HID_Buffer[4] = {0};
-  
-  HID_Buffer[1] = 0;
-  HID_Buffer[2] = 0;
-  /* LEFT Direction */
-  if(((int8_t)Buffer[2]) < -2)
-  {
-    HID_Buffer[1] += CURSOR_STEP;
+  static uint8_t flag = 0;
+
+
+  if ( StepCnt == 4 * WIDTH) {
+	  HID_Buffer[ 0 ] = 0;
+	  HID_Buffer[ 1 ] = CURSOR_STEP;
+	  HID_Buffer[ 2 ] = CURSOR_STEP;
+	  StepCnt %= 4 * WIDTH;
+      return HID_Buffer;
   }
-  /* RIGHT Direction */ 
-  if(((int8_t)Buffer[2]) > 2)
-  {
-   HID_Buffer[1] -= CURSOR_STEP;
-  } 
-  /* UP Direction */
-  if(((int8_t)Buffer[0]) < -2)
-  {
-    HID_Buffer[2] += CURSOR_STEP;
+
+
+  HID_Buffer[ 0 ] = !(( StepCnt % WIDTH ) % 2);
+  HID_Buffer[ 1 ] = step[ CurDir ][ 0 ];
+  HID_Buffer[ 2 ] = step[ CurDir ][ 1 ];
+  ++StepCnt;
+
+  if ( StepCnt % WIDTH == 0 ) {
+	  CurDir = ( ++CurDir ) % 4;
   }
-  /* DOWN Direction */ 
-  if(((int8_t)Buffer[0]) > 2)
-  {
-    HID_Buffer[2] -= CURSOR_STEP;
-  } 
-  
+  return HID_Buffer;
+}
+
+
+static uint8_t *HID_Release (void)
+{
+  static uint8_t HID_Buffer[4] = {0};
+
+  return HID_Buffer;
+}
+
+
+static uint8_t *Move_Right_Down (void)
+{
+  static uint8_t HID_Buffer[4] = {0};
+
+  HID_Buffer[ 0 ] = 0;
+  HID_Buffer[ 1 ] = CURSOR_STEP;
+  HID_Buffer[ 2 ] = CURSOR_STEP;
+
   return HID_Buffer;
 }
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
