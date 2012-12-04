@@ -87,6 +87,7 @@ int main(void)
   DemoEnterCondition = 0x00;
 
   while(1) {
+
   }
 
 }
