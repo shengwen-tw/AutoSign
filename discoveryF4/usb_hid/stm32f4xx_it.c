@@ -235,8 +235,8 @@ static uint8_t *USBD_HID_GetPos (void)
 
   if ( StepCnt == 4 * WIDTH) {
 	  HID_Release();
-	  HID_Buffer[ 1 ] = 1;
-	  HID_Buffer[ 2 ] = 1;
+	  HID_Buffer[ 1 ] = 5;
+	  HID_Buffer[ 2 ] = 5;
 	  StepCnt %= 4 * WIDTH;
       return HID_Buffer;
   }
