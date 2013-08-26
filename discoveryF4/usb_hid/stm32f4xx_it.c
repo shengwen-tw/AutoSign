@@ -324,7 +324,7 @@ Draw_Status DrawChar(uint8_t (*InfoArray)[3], uint8_t ArrayCnt, uint8_t FontSize
 
 /**
 * @brief  Draw some words
-* @param  Pointer of string, string of 
+* @param  Pointer of string, uint8_t of length, uint8_t of font size
 * @retval None
 */
 void DrawWords(uint8_t *String, uint8_t Length, uint8_t FontSize)
