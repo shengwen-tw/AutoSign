@@ -1,0 +1,15 @@
+Project name : AutoSign
+Author : Shengwen (l1996812@gmail.com)
+
+Hello!
+
+This is a modified demo of DiscoveryF4-USB.
+All the files in need are in  usb-hid/,the function I coded will allow you to draw some words by the cursor.
+
+Modified files list:
+(1)stm32f4xx_it.c (control the drawing actions)
+(2)added file - font_table (record all the coordinate for drawing words)
+
+Have a nice day!
+
+Shengwen1997 ,2013-8-26
